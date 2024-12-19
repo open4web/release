@@ -3,7 +3,9 @@ name: Build and Release Electron App
 on:
   push:
     tags:
-      - 'release'  # Trigger on version tag (e.g., v1.0.0)
+      - 'v*'  # Trigger on version tag (e.g., v1.0.0)
+    branches:
+      - release  # Trigger on push to mini branch
 
 jobs:
   build:
