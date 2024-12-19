@@ -2,35 +2,28 @@ name: Build and Release Electron App
 
 on:
   push:
-    tags:
-      - 'v*'  # Trigger on version tag (e.g., v1.0.0)
     branches:
-      - release  # Trigger on push to mini branch
+      - 'release'  # 触发条件改为每次推送到 'main' 分支
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Specify the Node.js version
+          node-version: '18'  # 更改 Node.js 版本为 18
 
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: npm install
+      - name: Install dependencies with Yarn
+        run: yarn install  # 使用 yarn 安装依赖
 
-      # Step 4: Build the Electron application
-      - name: Build Electron application
-        run: npm run package
+      - name: Build Electron application using electron-builder
+        run: npm run build  # 使用 electron-builder 构建
 
-      # Step 5: Create a GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -42,13 +35,12 @@ jobs:
           draft: false
           prerelease: false
 
-      # Step 6: Upload the .exe file to GitHub Release
-      - name: Upload .exe to GitHub Release
+      - name: Upload ZIP to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release-build/WebToExe-win32-x64/WebToExe.exe
-          asset_name: WebToExe.exe
-          asset_content_type: application/octet-stream
+          asset_path: ./release-build/WebToExe-win32-x64/WebToExe.zip
+          asset_name: WebToExe.zip
+          asset_content_type: application/zip
