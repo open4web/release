@@ -1,0 +1,89 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - mini  # Trigger on push to mini branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Use `image_name` as a secret to make it configurable per repository
+      - name: Pull Docker image from Docker Hub
+        env:
+          IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME }}
+        run: docker pull $IMAGE_NAME
+
+      - name: Save Docker image to tar file
+        env:
+          IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME }}
+        run: docker save $IMAGE_NAME -o tmp.tar
+
+      - name: Copy tar file to EC2
+        env:
+          SERVER_HOST: ${{ vars.SERVER_HOST }}
+        run: scp -P 22 -o StrictHostKeyChecking=no tmp.tar root@$SERVER_HOST:/root/deploy/images/tmp.tar
+
+      - name: Load Docker image on EC2 and run container
+        env:
+          SERVER_HOST: ${{ vars.SERVER_HOST }}
+          DOCKER_COMPOSE_DIRS: ${{ vars.DOCKER_COMPOSE_DIRS }}  # Comma-separated list of paths
+        run: |
+          ssh -p 22 -o StrictHostKeyChecking=no root@$SERVER_HOST <<EOF
+            docker load -i /root/deploy/images/tmp.tar
+
+            # Loop through each directory in DOCKER_COMPOSE_DIRS
+            IFS=',' read -r -a dirs <<< "$DOCKER_COMPOSE_DIRS"
+            for dir in "\${dirs[@]}"; do
+              echo "Navigating to \$dir and starting docker-compose..."
+              cd "\$dir" || exit 1
+              docker compose up -d
+            done
+          EOF
+
+      - name: Send Slack Notification
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SERVER_HOST: ${{ vars.SERVER_HOST }}
+          IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME }}
+        run: |
+          # Retrieve Docker image version and image ID
+          IMAGE_ID=$(docker inspect --format='{{.Id}}' $IMAGE_NAME)
+          IMAGE_TAG=$(docker inspect --format='{{index .RepoTags 0}}' $IMAGE_NAME)
+          
+          # Send a formatted Slack message with detailed info
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \"🚀 *Deployment Successful*\n*Server Host:* $SERVER_HOST\n*Repository:* $GITHUB_REPOSITORY\n*Branch/Tag:* $GITHUB_REF_NAME\n*Image:* $IMAGE_TAG\n*Image ID:* $IMAGE_ID\n*Deployed by:* $GITHUB_ACTOR\",
+            \"attachments\": [
+              {
+                \"title\": \"Commit Details\",
+                \"fields\": [
+                  {\"title\": \"Branch\", \"value\": \"$GITHUB_REF_NAME\", \"short\": true},
+                  {\"title\": \"Deployed by\", \"value\": \"$GITHUB_ACTOR\", \"short\": true},
+                  {\"title\": \"Server Host\", \"value\": \"$SERVER_HOST\", \"short\": true},
+                  {\"title\": \"Image Version\", \"value\": \"$IMAGE_TAG\", \"short\": true},
+                  {\"title\": \"Image ID\", \"value\": \"$IMAGE_ID\", \"short\": true},
+                  {\"title\": \"Workflow Run\", \"value\": \"${{ github.run_id }}\", \"short\": true}
+                ]
+              }
+            ]
+          }" $SLACK_WEBHOOK_URL
