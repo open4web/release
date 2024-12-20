@@ -43,6 +43,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/WebToExe-win32-x64/WebToExe.zip  # Corrected path
+          asset_path: ./dist/web-to-exe Setup 1.0.0.exe  # Corrected path
           asset_name: WebToExe.zip
           asset_content_type: application/zip
