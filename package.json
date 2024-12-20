@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",  // 启动 Electron 应用
-    "build": "electron-builder"  // 定义 build 脚本，使用 electron-builder 打包应用
+    "start": "electron .",
+    "build": "electron-builder" ,
+    "package": "electron-packager . WebToExe --platform=win32 --arch=x64 --out=release-build --overwrite"
   },
   "devDependencies": {
     "electron": "^24.0.0",
-    "electron-builder": "^23.0.0"
+    "electron-packager": "^15.0.0"
   }
 }
