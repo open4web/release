@@ -2,8 +2,8 @@ name: Build and Release Electron App
 
 on:
   push:
-    branches:
-      - 'main'  # 触发条件改为每次推送到 'release' 分支
+    tags:
+      - 'v*'  # Trigger on version tag (e.g., v1.0.0)
 
 jobs:
   build:
