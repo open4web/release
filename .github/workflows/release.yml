@@ -3,7 +3,7 @@ name: Build and Release Electron App
 on:
   push:
     branches:
-      - 'release'  # 触发条件改为每次推送到 'main' 分支
+      - 'release'  # 触发条件改为每次推送到 'release' 分支
 
 jobs:
   build:
