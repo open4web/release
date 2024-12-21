@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies with Yarn
         run: yarn install  # 使用 yarn 安装依赖
 
+      - name: Install dmg-license for building DMG
+        run: yarn add dmg-license --dev  # 安装 dmg-license 依赖
+
       - name: Build Electron application using electron-builder for multiple platforms
         run: |
           npm run build -- --mac --win  # --mac 代表构建 Mac 版本，--win 代表构建 Windows 版本
