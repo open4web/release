@@ -3,7 +3,7 @@ name: Build and Release Electron App
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tag (e.g., v1.0.0)
+      - 'x*'  # Trigger on version tag (e.g., v1.0.0)
 
 jobs:
   build:
