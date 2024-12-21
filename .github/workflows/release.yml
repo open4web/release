@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest  # 使用 Ubuntu 来构建 Mac 版本和 Linux 版本
 
     steps:
       - name: Checkout repository
@@ -16,13 +16,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # 更改 Node.js 版本为 18
+          node-version: '18'  # 设置 Node.js 版本
 
       - name: Install dependencies with Yarn
         run: yarn install  # 使用 yarn 安装依赖
 
-      - name: Build Electron application using electron-builder
-        run: npm run build  # 使用 electron-builder 构建
+      - name: Build Electron application using electron-builder for multiple platforms
+        run: |
+          npm run build -- --mac --win  # --mac 代表构建 Mac 版本，--win 代表构建 Windows 版本
 
       - name: Create GitHub Release
         id: create_release
@@ -34,15 +35,26 @@ jobs:
           release_name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-      - name: List contents of the build directory
-        run: dir ./dist/
 
-      - name: Upload ZIP to GitHub Release
+      - name: List contents of the build directory
+        run: ls -al ./dist/
+
+      - name: Upload Windows ZIP to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/web-to-exe Setup 1.0.0.exe  # Corrected path
-          asset_name: WebToExe.zip
+          asset_path: ./dist/web-to-exe Setup 1.0.0.exe  # Windows 版本的安装包
+          asset_name: WebToExe-win32-x64.zip
           asset_content_type: application/zip
+
+      - name: Upload Mac ZIP to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/web-to-exe-1.0.0.dmg  # Mac 版本的 dmg 包
+          asset_name: WebToExe-darwin-x64.dmg
+          asset_content_type: application/x-apple-diskimage

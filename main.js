@@ -3,12 +3,10 @@ const { app, BrowserWindow } = require('electron');
 let mainWindow;
 
 app.on('ready', () => {
+    // 或者
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        webPreferences: {
-            nodeIntegration: false,
-        },
+        kiosk: true,
+        icon: path.join(__dirname, 'assets/favicon.ico')
     });
 
     // Load the web URL
