@@ -5,8 +5,8 @@ let mainWindow;
 app.on('ready', () => {
     // 或者
     mainWindow = new BrowserWindow({
-        kiosk: true,
-        icon: path.join(__dirname, 'assets/favicon.ico')
+        kiosk: true
+        // icon: 'assets/favicon.ico'
     });
 
     // Load the web URL
