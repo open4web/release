@@ -1,54 +1,67 @@
-name: Build and Release Android App
+name: Build & Release Android APK
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch: {}
+      - 'v*'   # Push tag like v1.0.0 triggers workflow
+  workflow_dispatch: {}  # manual trigger
 
 jobs:
-  build-android:
+  android-release:
     runs-on: ubuntu-latest
 
+    env:
+      NODE_VERSION: 20
+      WEB_DIR: www               # Capacitor webDir
+      ANDROID_PROJECT_DIR: android-app/android # Capacitor Android project path
+
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 安装 Node.js >= 20
+      # 2️⃣ Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
-      # 安装依赖（不用 ci，直接 install）
-      - name: Install project dependencies
+      # 3️⃣ Install dependencies
+      - name: Install npm dependencies
         run: npm install
 
-      # 可选：前端打包 (确保 ./www 目录有 index.html)
+      # 4️⃣ Build web assets
       - name: Build web assets
         run: |
           if [ -f package.json ]; then
-            npm run build || echo "No build script, skip"
+            npm run build || echo "No build script, skipping"
+          fi
+          # Ensure webDir exists
+          if [ ! -d ${{ env.WEB_DIR }} ]; then
+            echo "Web assets directory ${{ env.WEB_DIR }} not found!"
+            exit 1
           fi
 
-      # 安装 Capacitor Android 并同步
-      - name: Sync Capacitor Android
-        run: |
-          npm install @capacitor/android
-          npx cap sync android
+      # 5️⃣ Install Capacitor Android platform
+      - name: Install Capacitor Android
+        run: npm install @capacitor/android
 
-      # 构建 Android APK
+      # 6️⃣ Sync Capacitor project
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      # 7️⃣ Build APK with Gradle
       - name: Build Android APK
-        working-directory: android-app/android
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
-      # 输出 APK 路径
+      # 8️⃣ List APK output
       - name: List APK files
-        run: ls -lh android-app/android/app/build/outputs/apk/release/
+        run: ls -lh ${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/apk/release/
 
-      # 创建 GitHub Release
+      # 9️⃣ Create GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -60,13 +73,13 @@ jobs:
           draft: false
           prerelease: false
 
-      # 上传 APK 到 Release
+      # 🔟 Upload APK to Release
       - name: Upload APK to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
+          asset_path: ${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
           asset_name: WebToExe-${{ github.ref_name }}.apk
           asset_content_type: application/vnd.android.package-archive
