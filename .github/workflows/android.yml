@@ -1,67 +1,72 @@
-name: Build & Release Android APK
+name: Build and Release App
 
 on:
   push:
     tags:
-      - 'v*'   # Push tag like v1.0.0 triggers workflow
-  workflow_dispatch: {}  # manual trigger
+      - 'v*'   # 触发规则
+  workflow_dispatch: {} # 手动触发
 
 jobs:
-  android-release:
+  build:
     runs-on: ubuntu-latest
 
     env:
-      NODE_VERSION: 20
-      WEB_DIR: www               # Capacitor webDir
-      ANDROID_PROJECT_DIR: android-app/android # Capacitor Android project path
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
     steps:
-      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Node.js
+      # 安装 Node.js >=20
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
 
-      # 3️⃣ Install dependencies
-      - name: Install npm dependencies
+      # 安装前端依赖
+      - name: Install dependencies
         run: npm install
 
-      # 4️⃣ Build web assets
+      # 打包前端 web
       - name: Build web assets
         run: |
-          if [ -f package.json ]; then
-            npm run build || echo "No build script, skipping"
-          fi
-          # Ensure webDir exists
-          if [ ! -d ${{ env.WEB_DIR }} ]; then
-            echo "Web assets directory ${{ env.WEB_DIR }} not found!"
-            exit 1
-          fi
+          npm run build
+          ls -lh dist  # 确认输出
 
-      # 5️⃣ Install Capacitor Android platform
+      # ============================
+      # Electron 构建
+      # ============================
+      - name: Clean electron-builder cache
+        run: rm -rf ~/.cache/electron-builder
+
+      - name: Build Electron app
+        run: npm run build  # 你的 package.json 里 electron-builder build 脚本
+        working-directory: .
+
+      - name: List Electron build outputs
+        run: ls -lh dist/
+
+      # ============================
+      # Capacitor Android 构建
+      # ============================
       - name: Install Capacitor Android
         run: npm install @capacitor/android
 
-      # 6️⃣ Sync Capacitor project
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      # 7️⃣ Build APK with Gradle
       - name: Build Android APK
-        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
+        working-directory: android-app/android
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
-      # 8️⃣ List APK output
       - name: List APK files
-        run: ls -lh ${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/apk/release/
+        run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 9️⃣ Create GitHub Release
+      # ============================
+      # GitHub Release
+      # ============================
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -73,13 +78,24 @@ jobs:
           draft: false
           prerelease: false
 
-      # 🔟 Upload APK to Release
-      - name: Upload APK to GitHub Release
+      # 上传 Electron Linux AppImage
+      - name: Upload Electron Linux AppImage
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
+          asset_path: dist/web-to-exe-1.0.0.AppImage
+          asset_name: WebToExe-${{ github.ref_name }}-linux.AppImage
+          asset_content_type: application/octet-stream
+
+      # 上传 Android APK
+      - name: Upload APK
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
           asset_name: WebToExe-${{ github.ref_name }}.apk
           asset_content_type: application/vnd.android.package-archive
