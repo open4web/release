@@ -37,6 +37,7 @@ jobs:
 
       # 5. Install Capacitor Android and sync
       - name: Setup Capacitor Android
+        working-directory: ./       # 根目录
         run: |
           npm install @capacitor/android
           npx --no-install cap sync android
