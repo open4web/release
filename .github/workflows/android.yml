@@ -31,10 +31,12 @@ jobs:
             npm run build || echo "No build script, skip"
           fi
 
+      - name: Install dependencies
+        run: npm install
+
       # 安装 Capacitor Android 并同步
-      - name: Install Capacitor Android
-        run: |
-          npx --no-install cap sync android
+      - name: Sync Capacitor Android
+        run: npx cap sync android
 
       # 构建 Android APK
       - name: Build Android APK
