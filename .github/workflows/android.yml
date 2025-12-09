@@ -45,84 +45,84 @@ jobs:
       # ============================
       - name: Fix Capacitor Config
         run: |
-          node <<'EOF'
-  const fs = require('fs');
-  const cfgFile = "capacitor.config.json";
-  
-  let cfg = fs.existsSync(cfgFile)
-? JSON.parse(fs.readFileSync(cfgFile))
-  : {};
-  
-  cfg.webDir = "www";
-cfg.android = { path: "android-app/android" };
-  
-  fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2));
-  EOF
+                    node <<'EOF'
+            const fs = require('fs');
+            const cfgFile = "capacitor.config.json";
+            
+            let cfg = fs.existsSync(cfgFile)
+          ? JSON.parse(fs.readFileSync(cfgFile))
+            : {};
+            
+            cfg.webDir = "www";
+          cfg.android = { path: "android-app/android" };
+            
+            fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2));
+            EOF
 
-# ============================
-# Android platform
-# ============================
-- name: Install Capacitor Android
-  run: npm install @capacitor/android
+      # ============================
+      # Android platform
+      # ============================
+      - name: Install Capacitor Android
+        run: npm install @capacitor/android
 
-- name: Add Android if missing
-  run: |
-    if [ ! -d "android-app/android" ]; then
-      echo "Adding Android..."
-      npx cap add android
-      mkdir -p android-app
-      mv android android-app/android
-    else
-      echo "Android platform exists"
-    fi
+      - name: Add Android if missing
+        run: |
+          if [ ! -d "android-app/android" ]; then
+            echo "Adding Android..."
+            npx cap add android
+            mkdir -p android-app
+            mv android android-app/android
+          else
+            echo "Android platform exists"
+          fi
 
-- name: Sync Capacitor
-  run: npx cap sync android
+      - name: Sync Capacitor
+        run: npx cap sync android
 
-# ============================
-# Android Build
-# ============================
-- name: Build Android APK
-  working-directory: android-app/android
-  run: |
-    chmod +x ./gradlew
-    ./gradlew assembleRelease
+      # ============================
+      # Android Build
+      # ============================
+      - name: Build Android APK
+        working-directory: android-app/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
 
-- name: List APK
-  run: ls -lh android-app/android/app/build/outputs/apk/release/
+      - name: List APK
+        run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-# ============================
-# GitHub Release
-# ============================
-- name: Create GitHub Release
-  id: create_release
-  uses: actions/create-release@v1
-  env:
-    GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
-  with:
-    tag_name: ${{ github.ref_name }}
-    release_name: Release ${{ github.ref_name }}
-    draft: false
-    prerelease: false
+      # ============================
+      # GitHub Release
+      # ============================
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
 
-# Upload Electron AppImage automatically (detect filename)
-- name: Upload Electron AppImage
-  uses: actions/upload-release-asset@v1
-  env:
-    GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
-  with:
-    upload_url: ${{ steps.create_release.outputs.upload_url }}
-    asset_path: $(ls dist/*.AppImage | head -n 1)
-    asset_name: WebToExe-${{ github.ref_name }}.AppImage
-    asset_content_type: application/octet-stream
+      # Upload Electron AppImage automatically (detect filename)
+      - name: Upload Electron AppImage
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: $(ls dist/*.AppImage | head -n 1)
+          asset_name: WebToExe-${{ github.ref_name }}.AppImage
+          asset_content_type: application/octet-stream
 
-# Upload Android APK
-- name: Upload APK
-  uses: actions/upload-release-asset@v1
-  env:
-    GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
-  with:
-    upload_url: ${{ steps.create_release.outputs.upload_url }}
-    asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
-    asset_name: WebToExe-${{ github.ref_name }}.apk
-    asset_content_type: application/vnd.android.package-archive
+      # Upload Android APK
+      - name: Upload APK
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
+          asset_name: WebToExe-${{ github.ref_name }}.apk
+          asset_content_type: application/vnd.android.package-archive
