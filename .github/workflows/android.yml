@@ -14,33 +14,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 安装 Node.js >= 20
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
+      # 安装依赖（不用 ci，直接 install）
       - name: Install project dependencies
-        run: npm ci
+        run: npm install
 
+      # 可选：前端打包 (确保 ./www 目录有 index.html)
       - name: Build web assets
         run: |
           if [ -f package.json ]; then
             npm run build || echo "No build script, skip"
           fi
 
+      # 安装 Capacitor Android 并同步
       - name: Sync Capacitor Android
-        working-directory: ./  # 确保在 package.json 根目录
-        run: npx cap sync android
+        run: |
+          npm install @capacitor/android
+          npx cap sync android
 
+      # 构建 Android APK
       - name: Build Android APK
         working-directory: android-app/android
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
+      # 输出 APK 路径
       - name: List APK files
         run: ls -lh android-app/android/app/build/outputs/apk/release/
 
+      # 创建 GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -52,6 +60,7 @@ jobs:
           draft: false
           prerelease: false
 
+      # 上传 APK 到 Release
       - name: Upload APK to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
