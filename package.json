@@ -11,5 +11,10 @@
     "electron": "^24.0.0",
     "electron-packager": "^15.0.0",
     "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/android": "^8.0.0"
   }
 }

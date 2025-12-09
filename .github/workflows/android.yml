@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-
       # 安装前端依赖
       - name: Install dependencies
         run: npm install
@@ -53,6 +52,7 @@ jobs:
         run: npm install @capacitor/android
 
       - name: Sync Capacitor Android
+        working-directory: ./android-app   # <-- capacitor.config.json 所在目录
         run: npx cap sync android
 
       - name: Build Android APK
