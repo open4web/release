@@ -4,54 +4,51 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tag (e.g., v1.0.0)
-  workflow_dispatch: {} # 可手动触发
+  workflow_dispatch: {} # 手动触发
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
-      # 1. Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Setup Node.js >=20
+      # 安装 Node.js >= 20
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # 3. Install project dependencies
-      - name: Install dependencies
+      # 安装依赖
+      - name: Install project dependencies
         run: npm install
 
-      # 4. Build web assets（如果有前端项目）
+      # 可选：前端打包 (确保 ./www 目录有 index.html)
       - name: Build web assets
         run: |
           if [ -f package.json ]; then
-            npm run build || echo "No build script, skipping..."
+            npm run build || echo "No build script, skip"
           fi
 
-      # 5. Install Capacitor Android and sync
-      - name: Setup Capacitor Android
-        working-directory: ./       # 根目录
+      # 安装 Capacitor Android 并同步
+      - name: Install Capacitor Android
         run: |
           npm install @capacitor/android
           npx --no-install cap sync android
 
-      # 6. Build Android APK
-      - name: Build APK
+      # 构建 Android APK
+      - name: Build Android APK
         working-directory: android-app/android
-        run: ./gradlew assembleRelease
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
 
-      # 7. List APK files for verification
+      # 输出 APK 路径
       - name: List APK files
         run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 8. Create GitHub Release
+      # 创建 GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -63,13 +60,13 @@ jobs:
           draft: false
           prerelease: false
 
-      # 9. Upload APK to GitHub Release
-      - name: Upload APK
+      # 上传 APK 到 Release
+      - name: Upload APK to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
-          asset_name: huangliji-menu-${{ github.ref_name }}.apk
+          asset_name: WebToExe-${{ github.ref_name }}.apk
           asset_content_type: application/vnd.android.package-archive
