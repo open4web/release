@@ -51,17 +51,45 @@ jobs:
       - name: Install Capacitor Android
         run: npm install @capacitor/android
 
-      # 如果 android 目录不存在 → 自动添加
-      - name: Add Android platform if missing
+      # 配置 capacitor.config.json，使 android 路径正确
+      - name: Ensure capacitor config
         run: |
-          if [ ! -d "android-app/android" ]; then
-            echo "Android platform not found, adding..."
-            npx cap add android --web-dir=www
-            mkdir -p android-app
-            mv android android-app/android
+          CONFIG_FILE="capacitor.config.json"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "capacitor.config.json not found, creating..."
+            cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.example.app",
+            "appName": "web-to-exe",
+            "webDir": "www",
+            "android": {
+              "path": "android-app/android"
+            }
+          }
+          EOF
           else
-            echo "Android platform already exists"
+          echo "Updating existing capacitor.config.json"
+          node <<'EOF'
+          const fs = require('fs');
+          let cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
+          cfg.webDir = "www";
+        cfg.android = { path: "android-app/android" };
+          fs.writeFileSync('capacitor.config.json', JSON.stringify(cfg, null, 2));
+          EOF
           fi
+
+        # 自动添加 Android 平台
+        - name: Add Android platform if missing
+          run: |
+            if [ ! -d "android-app/android" ]; then
+              echo "Android platform not found, adding..."
+              npx cap add android
+            
+              mkdir -p android-app
+              mv android android-app/android
+            else
+              echo "Android platform already exists"
+            fi
       - name: Sync Capacitor Android
         working-directory: ./android-app   # <-- capacitor.config.json 所在目录
         run: npx cap sync android
