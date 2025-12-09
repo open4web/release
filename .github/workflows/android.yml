@@ -51,6 +51,17 @@ jobs:
       - name: Install Capacitor Android
         run: npm install @capacitor/android
 
+      # 如果 android 目录不存在 → 自动添加
+      - name: Add Android platform if missing
+        run: |
+          if [ ! -d "android-app/android" ]; then
+            echo "Android platform not found, adding..."
+            npx cap add android --web-dir=www
+            mkdir -p android-app
+            mv android android-app/android
+          else
+            echo "Android platform already exists"
+          fi
       - name: Sync Capacitor Android
         working-directory: ./android-app   # <-- capacitor.config.json 所在目录
         run: npx cap sync android
