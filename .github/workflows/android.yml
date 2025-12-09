@@ -34,7 +34,6 @@ jobs:
       # 安装 Capacitor Android 并同步
       - name: Install Capacitor Android
         run: |
-          npm install @capacitor/android
           npx --no-install cap sync android
 
       # 构建 Android APK
