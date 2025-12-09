@@ -1,0 +1,55 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Electron build outputs
+dist/
+release-build/
+*.app
+*.exe
+*.dmg
+*.deb
+*.snap
+*.AppImage
+
+# Capacitor / Native platforms
+android/
+ios/
+# 如果你希望保留 ios/android 源码，删掉上面对应行
+
+# Capacitor web assets (会被 copy 到 android/ios)
+www/
+
+# Logs
+*.log
+logs/
+*.pid
+*.seed
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+build/
+out/

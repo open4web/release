@@ -1,0 +1,65 @@
+name: Build & Release Web + Android
+
+on:
+  push:
+    tags:
+      - 'v*'  # 例如 v0.0.1, v0.0.2
+  workflow_dispatch: # 可手动触发
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        working-directory: ./android-app
+        run: npm install
+
+      # 构建 Web 资源
+      - name: Build Web assets
+        working-directory: ./android-app
+        run: |
+          # 如果你有前端打包命令，例如 Vite/React/Next.js
+          # npm run build
+          echo "Assuming www already has index.html"
+
+      # 更新 Capacitor
+      - name: Copy web assets to native project
+        working-directory: ./android-app
+        run: npx cap copy
+
+      # 构建 Android APK
+      - name: Build Android APK
+        working-directory: ./android-app/android
+        run: ./gradlew assembleRelease
+
+      # 创建 GitHub Release
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      # 上传 APK
+      - name: Upload APK to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./android-app/android/app/build/outputs/apk/release/app-release.apk
+          asset_name: huangliji-menu-${{ github.ref_name }}.apk
+          asset_content_type: application/vnd.android.package-archive

@@ -2,14 +2,21 @@ const { app, BrowserWindow } = require('electron');
 
 let mainWindow;
 
+const { app, BrowserWindow } = require('electron');
+
+let mainWindow;
+
 app.on('ready', () => {
-    // 或者
     mainWindow = new BrowserWindow({
-        kiosk: true
-        // icon: 'assets/favicon.ico'
+        width: 1280,
+        height: 800,
+        kiosk: true,
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: false,
+        }
     });
 
-    // Load the web URL
     mainWindow.loadURL('https://menu.huangliji.tech/');
 });
 
