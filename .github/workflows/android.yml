@@ -9,9 +9,6 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - name: Checkout repository
@@ -22,33 +19,28 @@ jobs:
         with:
           node-version: '20'
 
-      # 安装依赖
-      - name: Install dependencies
-        run: npm install
+      - name: Install project dependencies
+        run: npm ci
 
-      # 打包 web 前端
       - name: Build web assets
         run: |
           if [ -f package.json ]; then
             npm run build || echo "No build script, skip"
           fi
 
-      # 同步 Capacitor Android
       - name: Sync Capacitor Android
+        working-directory: ./  # 确保在 package.json 根目录
         run: npx cap sync android
 
-      # 构建 APK
       - name: Build Android APK
         working-directory: android-app/android
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
-      # 输出 APK 路径
       - name: List APK files
         run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 创建 Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -60,7 +52,6 @@ jobs:
           draft: false
           prerelease: false
 
-      # 上传 APK
       - name: Upload APK to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
