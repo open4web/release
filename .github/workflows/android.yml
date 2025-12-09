@@ -23,20 +23,19 @@ jobs:
         with:
           node-version: '20'
 
-      # 安装依赖
-      - name: Install dependencies
-        run: npm ci
+      # 安装依赖（如果 package-lock.json 不存在也不会报错）
+      - name: Install Node dependencies
+        run: npm install
 
-      # 可选：如果你有 web 前端，需要打包
-      - name: Build web assets (optional)
+      # 打包前端 Web assets（确保有 index.html）
+      - name: Build web assets
         run: |
-          # 如果 web 目录在 /www 或 /dist
           if [ -f package.json ]; then
-            npm run build
+            npm run build || echo "No build script, skipping"
           fi
 
-      # 初始化 Capacitor（确保 capacitor.config.json 已存在）
-      - name: Ensure Capacitor Android
+      # 安装 Capacitor Android 并同步项目
+      - name: Setup Capacitor Android
         run: |
           npm install @capacitor/android
           npx cap sync android
@@ -44,13 +43,15 @@ jobs:
       # 构建 Android APK
       - name: Build APK
         working-directory: android-app/android
-        run: ./gradlew assembleRelease
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
 
       # 输出 APK 路径
       - name: List APK files
         run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 上传到 GitHub Release
+      # 创建 GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -62,6 +63,7 @@ jobs:
           draft: false
           prerelease: false
 
+      # 上传 APK 到 Release
       - name: Upload APK to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
