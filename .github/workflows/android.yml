@@ -3,42 +3,41 @@ name: Build and Release Android App
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tag (e.g., v1.0.0)
-  workflow_dispatch: {} # 手动触发
+      - 'v*'
+  workflow_dispatch: {}
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 安装 Node.js >= 20
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
       # 安装依赖
-      - name: Install project dependencies
+      - name: Install dependencies
         run: npm install
 
-      # 可选：前端打包 (确保 ./www 目录有 index.html)
+      # 打包 web 前端
       - name: Build web assets
         run: |
           if [ -f package.json ]; then
             npm run build || echo "No build script, skip"
           fi
 
-      - name: Install dependencies
-        run: npm install
-
-      # 安装 Capacitor Android 并同步
+      # 同步 Capacitor Android
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      # 构建 Android APK
+      # 构建 APK
       - name: Build Android APK
         working-directory: android-app/android
         run: |
@@ -49,7 +48,7 @@ jobs:
       - name: List APK files
         run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 创建 GitHub Release
+      # 创建 Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -61,7 +60,7 @@ jobs:
           draft: false
           prerelease: false
 
-      # 上传 APK 到 Release
+      # 上传 APK
       - name: Upload APK to GitHub Release
         uses: actions/upload-release-asset@v1
         env:

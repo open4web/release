@@ -1,5 +1,6 @@
 {
   "appId": "huangliji.menu",
   "appName": "huangliji-menu",
-  "webDir": "www"
+  "webDir": "www",
+  "bundledWebRuntime": false
 }
