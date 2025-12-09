@@ -14,44 +14,43 @@ jobs:
         shell: bash
 
     steps:
+      # 1. Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 安装 Node.js >=20
+      # 2. Setup Node.js >=20
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # 安装依赖（如果 package-lock.json 不存在也不会报错）
-      - name: Install Node dependencies
+      # 3. Install project dependencies
+      - name: Install dependencies
         run: npm install
 
-      # 打包前端 Web assets（确保有 index.html）
+      # 4. Build web assets（如果有前端项目）
       - name: Build web assets
         run: |
           if [ -f package.json ]; then
-            npm run build || echo "No build script, skipping"
+            npm run build || echo "No build script, skipping..."
           fi
 
-      # 安装 Capacitor Android 并同步项目
+      # 5. Install Capacitor Android and sync
       - name: Setup Capacitor Android
         run: |
           npm install @capacitor/android
-          npx cap sync android
+          npx --no-install cap sync android
 
-      # 构建 Android APK
+      # 6. Build Android APK
       - name: Build APK
         working-directory: android-app/android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleRelease
+        run: ./gradlew assembleRelease
 
-      # 输出 APK 路径
+      # 7. List APK files for verification
       - name: List APK files
         run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 创建 GitHub Release
+      # 8. Create GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -63,13 +62,13 @@ jobs:
           draft: false
           prerelease: false
 
-      # 上传 APK 到 Release
-      - name: Upload APK to GitHub Release
+      # 9. Upload APK to GitHub Release
+      - name: Upload APK
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
-          asset_name: WebToExe-${{ github.ref_name }}.apk
+          asset_name: huangliji-menu-${{ github.ref_name }}.apk
           asset_content_type: application/vnd.android.package-archive
