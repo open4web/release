@@ -44,8 +44,7 @@ jobs:
       # Prepare Capacitor config
       # ============================
       - name: Fix Capacitor Config
-        run: |
-                    node <<'EOF'
+        run: node <<'EOF'
             const fs = require('fs');
             const cfgFile = "capacitor.config.json";
             
