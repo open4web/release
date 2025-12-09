@@ -3,138 +3,126 @@ name: Build and Release App
 on:
   push:
     tags:
-      - 'v*'   # 触发规则
-  workflow_dispatch: {} # 手动触发
+      - 'v*'
+  workflow_dispatch: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 安装 Node.js >=20
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-      # 安装前端依赖
+
       - name: Install dependencies
         run: npm install
 
-      # 打包前端 web
-      - name: Build web assets
+      # ============================
+      # Build Web Assets
+      # ============================
+      - name: Build Web
         run: |
           npm run build
-          ls -lh dist  # 确认输出
+          mkdir -p www
+          cp -r dist/* www/
 
       # ============================
-      # Electron 构建
+      # Build Electron App
       # ============================
-      - name: Clean electron-builder cache
-        run: rm -rf ~/.cache/electron-builder
+      - name: Build Electron App
+        run: npm run electron-build
 
-      - name: Build Electron app
-        run: npm run build  # 你的 package.json 里 electron-builder build 脚本
-        working-directory: .
-
-      - name: List Electron build outputs
+      - name: List Electron outputs
         run: ls -lh dist/
 
       # ============================
-      # Capacitor Android 构建
+      # Prepare Capacitor config
       # ============================
-      - name: Install Capacitor Android
-        run: npm install @capacitor/android
-
-      # 配置 capacitor.config.json，使 android 路径正确
-      - name: Ensure capacitor config
+      - name: Fix Capacitor Config
         run: |
-          CONFIG_FILE="capacitor.config.json"
-          if [ ! -f "$CONFIG_FILE" ]; then
-            echo "capacitor.config.json not found, creating..."
-            cat <<EOF > capacitor.config.json
-          {
-            "appId": "com.example.app",
-            "appName": "web-to-exe",
-            "webDir": "www",
-            "android": {
-              "path": "android-app/android"
-            }
-          }
-          EOF
-          else
-          echo "Updating existing capacitor.config.json"
           node <<'EOF'
-          const fs = require('fs');
-          let cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
-          cfg.webDir = "www";
-        cfg.android = { path: "android-app/android" };
-          fs.writeFileSync('capacitor.config.json', JSON.stringify(cfg, null, 2));
-          EOF
-          fi
+  const fs = require('fs');
+  const cfgFile = "capacitor.config.json";
+  
+  let cfg = fs.existsSync(cfgFile)
+? JSON.parse(fs.readFileSync(cfgFile))
+  : {};
+  
+  cfg.webDir = "www";
+cfg.android = { path: "android-app/android" };
+  
+  fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2));
+  EOF
 
-        # 自动添加 Android 平台
-        - name: Add Android platform if missing
-          run: |
-            if [ ! -d "android-app/android" ]; then
-              echo "Android platform not found, adding..."
-              npx cap add android
-            
-              mkdir -p android-app
-              mv android android-app/android
-            else
-              echo "Android platform already exists"
-            fi
-      - name: Sync Capacitor Android
-        working-directory: ./android-app   # <-- capacitor.config.json 所在目录
-        run: npx cap sync android
+# ============================
+# Android platform
+# ============================
+- name: Install Capacitor Android
+  run: npm install @capacitor/android
 
-      - name: Build Android APK
-        working-directory: android-app/android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleRelease
+- name: Add Android if missing
+  run: |
+    if [ ! -d "android-app/android" ]; then
+      echo "Adding Android..."
+      npx cap add android
+      mkdir -p android-app
+      mv android android-app/android
+    else
+      echo "Android platform exists"
+    fi
 
-      - name: List APK files
-        run: ls -lh android-app/android/app/build/outputs/apk/release/
+- name: Sync Capacitor
+  run: npx cap sync android
 
-      # ============================
-      # GitHub Release
-      # ============================
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+# ============================
+# Android Build
+# ============================
+- name: Build Android APK
+  working-directory: android-app/android
+  run: |
+    chmod +x ./gradlew
+    ./gradlew assembleRelease
 
-      # 上传 Electron Linux AppImage
-      - name: Upload Electron Linux AppImage
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/web-to-exe-1.0.0.AppImage
-          asset_name: WebToExe-${{ github.ref_name }}-linux.AppImage
-          asset_content_type: application/octet-stream
+- name: List APK
+  run: ls -lh android-app/android/app/build/outputs/apk/release/
 
-      # 上传 Android APK
-      - name: Upload APK
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
-          asset_name: WebToExe-${{ github.ref_name }}.apk
-          asset_content_type: application/vnd.android.package-archive
+# ============================
+# GitHub Release
+# ============================
+- name: Create GitHub Release
+  id: create_release
+  uses: actions/create-release@v1
+  env:
+    GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+  with:
+    tag_name: ${{ github.ref_name }}
+    release_name: Release ${{ github.ref_name }}
+    draft: false
+    prerelease: false
+
+# Upload Electron AppImage automatically (detect filename)
+- name: Upload Electron AppImage
+  uses: actions/upload-release-asset@v1
+  env:
+    GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+  with:
+    upload_url: ${{ steps.create_release.outputs.upload_url }}
+    asset_path: $(ls dist/*.AppImage | head -n 1)
+    asset_name: WebToExe-${{ github.ref_name }}.AppImage
+    asset_content_type: application/octet-stream
+
+# Upload Android APK
+- name: Upload APK
+  uses: actions/upload-release-asset@v1
+  env:
+    GITHUB_TOKEN: ${{ secrets.CUSTOME_GITHUB_TOKEN }}
+  with:
+    upload_url: ${{ steps.create_release.outputs.upload_url }}
+    asset_path: android-app/android/app/build/outputs/apk/release/app-release.apk
+    asset_name: WebToExe-${{ github.ref_name }}.apk
+    asset_content_type: application/vnd.android.package-archive
