@@ -1,0 +1,74 @@
+{
+  "apps": {
+    "x5": {
+      "key": "x5",
+      "name": "智点出餐",
+      "description": "出餐管理中心（Pad 端）：后厨/出餐口看板，新订单语音提醒，拖拽更新制作中、待取餐、已出餐状态。",
+      "webUrl": "https://pad.huangliji.tech/",
+      "androidAppId": "tech.huangliji.pad",
+      "version": "1.0.0",
+      "tag": "x5-v1.0.0",
+      "releasedAt": "2026-10-22T22:02:08Z",
+      "releaseUrl": "https://github.com/open4web/release/releases/tag/x5-v1.0.0",
+      "assets": {
+        "android": {
+          "name": "zhidian-kitchen-android.apk",
+          "size": 47316,
+          "sha256": "5f8bc59ed2c46b2a0bab8d8c3b7602f2ef3cf0f57913d96bf0e5bf58cad985ca",
+          "url": "https://github.com/open4web/release/releases/download/x5-latest/zhidian-kitchen-android.apk",
+          "versionedUrl": "https://github.com/open4web/release/releases/download/x5-v1.0.0/zhidian-kitchen-android.apk"
+        },
+        "windowsSetup": {
+          "name": "zhidian-kitchen-windows-setup.exe",
+          "size": 111611542,
+          "sha256": "4a62a55a32a8fc550e0e3e97bba1745eb134233d08323a74822973c29f9be733",
+          "url": "https://github.com/open4web/release/releases/download/x5-latest/zhidian-kitchen-windows-setup.exe",
+          "versionedUrl": "https://github.com/open4web/release/releases/download/x5-v1.0.0/zhidian-kitchen-windows-setup.exe"
+        },
+        "windowsPortable": {
+          "name": "zhidian-kitchen-windows-portable.exe",
+          "size": 111362239,
+          "sha256": "5c488e6ca1a35466b96afe25566dc661478012b9f2e549cc07bb0f5cd34285db",
+          "url": "https://github.com/open4web/release/releases/download/x5-latest/zhidian-kitchen-windows-portable.exe",
+          "versionedUrl": "https://github.com/open4web/release/releases/download/x5-v1.0.0/zhidian-kitchen-windows-portable.exe"
+        }
+      }
+    },
+    "x6": {
+      "key": "x6",
+      "name": "智点收银",
+      "description": "门店点餐收银台：店员点餐、购物车、挂单、扫码/余额/现金收银、交接班对账。",
+      "webUrl": "https://menu.huangliji.tech/#/",
+      "androidAppId": "tech.huangliji.menu",
+      "version": "1.0.0",
+      "tag": "x6-v1.0.0",
+      "releasedAt": "2026-10-22T22:02:21Z",
+      "releaseUrl": "https://github.com/open4web/release/releases/tag/x6-v1.0.0",
+      "assets": {
+        "android": {
+          "name": "zhidian-pos-android.apk",
+          "size": 46892,
+          "sha256": "c39a086d1f77c049e3ecc568a4dd9e44ba53860df32cfbf408656befbbe4e0fc",
+          "url": "https://github.com/open4web/release/releases/download/x6-latest/zhidian-pos-android.apk",
+          "versionedUrl": "https://github.com/open4web/release/releases/download/x6-v1.0.0/zhidian-pos-android.apk"
+        },
+        "windowsSetup": {
+          "name": "zhidian-pos-windows-setup.exe",
+          "size": 111605354,
+          "sha256": "84682f65bc059325e4bfa97dab5918f198fd083f4a493d1734c82b52762c0501",
+          "url": "https://github.com/open4web/release/releases/download/x6-latest/zhidian-pos-windows-setup.exe",
+          "versionedUrl": "https://github.com/open4web/release/releases/download/x6-v1.0.0/zhidian-pos-windows-setup.exe"
+        },
+        "windowsPortable": {
+          "name": "zhidian-pos-windows-portable.exe",
+          "size": 111359213,
+          "sha256": "7862485bd3ba69beb60ef47cc78a580c2d64783a19ab6048ed2b383b3ee4c288",
+          "url": "https://github.com/open4web/release/releases/download/x6-latest/zhidian-pos-windows-portable.exe",
+          "versionedUrl": "https://github.com/open4web/release/releases/download/x6-v1.0.0/zhidian-pos-windows-portable.exe"
+        }
+      }
+    }
+  },
+  "updatedAt": "2026-10-22T22:02:21Z",
+  "schema": 1
+}
