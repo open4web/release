@@ -1,0 +1,17 @@
+{
+  "name": "zhidian-desktop-shell",
+  "version": "0.0.0",
+  "private": true,
+  "description": "智点 Windows 浏览器外壳（只加载 apps/<key>/app.json 中配置的网址）",
+  "author": "open4web",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check preload.js && node --check electron-builder.config.cjs",
+    "dist:win": "electron-builder --win --config electron-builder.config.cjs --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.9.3",
+    "electron-builder": "26.15.3"
+  }
+}

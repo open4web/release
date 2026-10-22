@@ -53,3 +53,7 @@ Desktop.ini
 # Build artifacts
 build/
 out/
+# 外壳构建时生成的文件
+shell/desktop/app-config.json
+.gradle/
+local.properties

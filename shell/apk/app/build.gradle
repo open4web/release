@@ -1,0 +1,74 @@
+// 浏览器外壳 App：只加载 apps/<key>/app.json 中配置的网址。
+// 构建参数（-P）：appKey（x5 / x6）、versionName（如 1.0.0）。
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+def appKey = (project.findProperty('appKey') ?: 'x6').toString()
+def appsDir = file("../../../apps/${appKey}")
+def cfg = new JsonSlurper().parse(new File(appsDir, 'app.json'))
+def verName = (project.findProperty('versionName') ?: '0.0.1').toString()
+def parts = verName.tokenize('.').collect { it.replaceAll('[^0-9]', '') ?: '0' }.collect { it as int }
+while (parts.size() < 3) parts << 0
+def verCode = parts[0] * 1000000 + parts[1] * 1000 + parts[2]
+
+def jstr = { String s -> '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+
+android {
+    namespace 'tech.huangliji.shell'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId cfg.androidAppId
+        minSdk 24
+        targetSdk 35
+        versionCode verCode
+        versionName verName
+        resValue 'string', 'app_name', cfg.name
+        buildConfigField 'String', 'START_URL', jstr(cfg.url)
+        buildConfigField 'String', 'ALLOWED_HOSTS', jstr(cfg.allowedHosts.join(','))
+        buildConfigField 'String', 'APP_KEY', jstr(appKey)
+        manifestPlaceholders = [screenOrientation: cfg.orientation ?: 'sensorLandscape']
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    sourceSets {
+        main {
+            res.srcDirs += ["${appsDir}/android-res"]
+        }
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('ANDROID_KEYSTORE_PATH')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv('ANDROID_KEYSTORE_PATH') ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

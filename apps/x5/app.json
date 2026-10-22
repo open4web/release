@@ -1,0 +1,15 @@
+{
+  "key": "x5",
+  "slug": "zhidian-kitchen",
+  "name": "智点出餐",
+  "nameEn": "Zhidian Kitchen",
+  "description": "出餐管理中心（Pad 端）：后厨/出餐口看板，新订单语音提醒，拖拽更新制作中、待取餐、已出餐状态。",
+  "sourceRepo": "open4web/x5",
+  "url": "https://pad.huangliji.tech/",
+  "allowedHosts": ["pad.huangliji.tech"],
+  "androidAppId": "tech.huangliji.pad",
+  "windowsAppId": "tech.huangliji.pad",
+  "orientation": "sensorLandscape",
+  "themeColor": "#2e7d32",
+  "iconText": "厨"
+}

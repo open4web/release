@@ -1,0 +1,15 @@
+{
+  "key": "x6",
+  "slug": "zhidian-pos",
+  "name": "智点收银",
+  "nameEn": "Zhidian POS",
+  "description": "门店点餐收银台：店员点餐、购物车、挂单、扫码/余额/现金收银、交接班对账。",
+  "sourceRepo": "open4web/x6",
+  "url": "https://menu.huangliji.tech/#/",
+  "allowedHosts": ["menu.huangliji.tech"],
+  "androidAppId": "tech.huangliji.menu",
+  "windowsAppId": "tech.huangliji.menu",
+  "orientation": "sensorLandscape",
+  "themeColor": "#f57c00",
+  "iconText": "收"
+}

@@ -1,0 +1,229 @@
+# 构建 x6（智点收银）/ x5（智点出餐）的 Android Pad 与 Windows 外壳应用，并发布到本仓库 Releases。
+#
+# 触发方式：
+#   1. 推送 tag：git tag x6-v1.0.1 && git push origin x6-v1.0.1
+#   2. 手动：Actions → Build x5 / x6 apps → Run workflow（选应用，版本号留空自动 +1）
+#   3. repository_dispatch（event_type=build-app，client_payload: {app, version}），供 x5 / x6 仓库触发
+#
+# 固定下载地址（永远指向最新版）：
+#   https://github.com/open4web/release/releases/download/<app>-latest/<slug>-android.apk
+#   https://github.com/open4web/release/releases/download/<app>-latest/<slug>-windows-setup.exe
+#   https://github.com/open4web/release/releases/download/<app>-latest/<slug>-windows-portable.exe
+# 版本清单：apps/latest.json（x8 官网下载页读取）
+name: Build x5 / x6 apps
+
+on:
+  push:
+    tags:
+      - 'x5-v*'
+      - 'x6-v*'
+  workflow_dispatch:
+    inputs:
+      app:
+        description: '要构建的应用'
+        type: choice
+        options: [all, x6, x5]
+        default: all
+      version:
+        description: '版本号（如 1.0.1），留空则在最新版本上自动 +1'
+        required: false
+        default: ''
+  repository_dispatch:
+    types: [build-app]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apps
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: 确定版本
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          IN_APP: ${{ github.event.inputs.app || github.event.client_payload.app || 'all' }}
+          IN_VER: ${{ github.event.inputs.version || github.event.client_payload.version || '' }}
+        run: python3 scripts/plan.py >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Android ${{ matrix.app }} v${{ matrix.version }}
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: 准备签名证书
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS_B64" ]; then
+            echo "::error::缺少 secret ANDROID_KEYSTORE_BASE64，无法签名 APK"
+            exit 1
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+      - name: 构建 APK
+        working-directory: shell/apk
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle --no-daemon assembleRelease -PappKey=${{ matrix.app }} -PversionName=${{ matrix.version }}
+      - name: 校验签名并改名
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          APK=shell/apk/app/build/outputs/apk/release/app-release.apk
+          "$BT/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)"
+          "$BT/aapt2" dump badging "$APK" | grep -E "^package:|application-label:"
+          mkdir -p out
+          cp "$APK" "out/${{ matrix.slug }}-android.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.app }}
+          path: out/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows ${{ matrix.app }} v${{ matrix.version }}
+    needs: plan
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: shell/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: shell/desktop/package-lock.json
+      - name: 写入应用配置
+        run: |
+          cp "../../apps/${{ matrix.app }}/app.json" app-config.json
+          mkdir -p build
+          cp "../../apps/${{ matrix.app }}/icon.ico" build/icon.ico
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - name: 构建安装包与免安装版
+        env:
+          APP_VERSION: ${{ matrix.version }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --win --config electron-builder.config.cjs --publish never
+      - name: 列出产物
+        run: ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.app }}
+          path: |
+            shell/desktop/dist/${{ matrix.slug }}-windows-setup.exe
+            shell/desktop/dist/${{ matrix.slug }}-windows-portable.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: 发布到 Releases
+    needs: [plan, android, windows]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MATRIX: ${{ needs.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: 创建版本 Release 并更新固定地址
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          echo "$MATRIX" | jq -c '.include[]' | while read -r it; do
+            APP=$(jq -r .app <<<"$it"); VER=$(jq -r .version <<<"$it"); TAG=$(jq -r .tag <<<"$it")
+            SLUG=$(jq -r .slug <<<"$it"); NAME=$(jq -r .name <<<"$it")
+            DIR="assets/$APP"; mkdir -p "$DIR"
+            cp artifacts/android-$APP/* artifacts/windows-$APP/* "$DIR"/
+            ls -la "$DIR"
+            URL=$(jq -r .url "apps/$APP/app.json"); DESC=$(jq -r .description "apps/$APP/app.json")
+            {
+              echo "## $NAME v$VER"
+              echo
+              echo "$DESC"
+              echo
+              echo "应用固定打开：$URL（其他网址会被拦截，避免切换到错误页面）"
+              echo
+              echo "| 文件 | 说明 | SHA-256 |"
+              echo "| --- | --- | --- |"
+              for f in "$DIR"/*; do
+                n=$(basename "$f"); s=$(sha256sum "$f" | cut -d' ' -f1)
+                case "$n" in
+                  *-android.apk) d="Android 平板 / Pad（Android 7.0 及以上）";;
+                  *-windows-setup.exe) d="Windows 10/11 64 位安装版";;
+                  *-windows-portable.exe) d="Windows 10/11 64 位免安装版";;
+                  *) d="";;
+                esac
+                echo "| $n | $d | \`$s\` |"
+              done
+              echo
+              echo "构建提交：$GITHUB_SHA"
+            } > notes-$APP.md
+
+            if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+              gh release upload "$TAG" "$DIR"/* --clobber -R "$REPO"
+              gh release edit "$TAG" --notes-file notes-$APP.md -R "$REPO"
+            else
+              gh release create "$TAG" "$DIR"/* -R "$REPO" --target "$GITHUB_SHA" \
+                --title "$NAME v$VER" --notes-file notes-$APP.md --latest
+            fi
+
+            ROLL="$APP-latest"
+            if ! gh release view "$ROLL" -R "$REPO" >/dev/null 2>&1; then
+              gh release create "$ROLL" -R "$REPO" --target "$GITHUB_SHA" --latest=false \
+                --title "$NAME（最新版固定下载地址）" --notes "占位，构建完成后更新"
+            fi
+            gh release upload "$ROLL" "$DIR"/* --clobber -R "$REPO"
+            { echo "> 本 Release 的下载地址固定不变，始终是最新版本（当前：v$VER，对应 [$TAG](https://github.com/$REPO/releases/tag/$TAG)）。"; echo; tail -n +2 notes-$APP.md; } > roll-$APP.md
+            gh release edit "$ROLL" --title "$NAME 最新版（v$VER）" --notes-file roll-$APP.md --latest=false -R "$REPO"
+
+            python3 scripts/update-manifest.py "$APP" "$VER" "$TAG" "$DIR"
+          done
+      - name: 提交 apps/latest.json
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/latest.json
+          if git diff --cached --quiet; then echo "清单无变化"; exit 0; fi
+          git commit -m "chore: 更新应用版本清单 $(echo "$MATRIX" | jq -r '[.include[].tag]|join(" ")')"
+          for i in 1 2 3; do
+            if git push origin HEAD:refs/heads/main; then exit 0; fi
+            git pull --rebase origin refs/heads/main
+          done
+          exit 1
