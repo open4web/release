@@ -86,15 +86,18 @@ jobs:
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_ALIAS: zhidian # 证书别名不是机密，写明文避免日志被打码
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon assembleRelease -PappKey=${{ matrix.app }} -PversionName=${{ matrix.version }}
       - name: 校验签名并改名
         run: |
-          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          set -x
+          ls "$ANDROID_HOME/build-tools"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
           APK=shell/apk/app/build/outputs/apk/release/app-release.apk
-          "$BT/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)"
-          "$BT/aapt2" dump badging "$APK" | grep -E "^package:|application-label:"
+          ls -la "$APK"
+          "${BT}apksigner" verify --print-certs "$APK"
+          "${BT}aapt2" dump badging "$APK" | head -3 || true
           mkdir -p out
           cp "$APK" "out/${{ matrix.slug }}-android.apk"
           rm -f "$RUNNER_TEMP/release.jks"

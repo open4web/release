@@ -49,7 +49,7 @@ scripts/                   plan.py（版本计算）、update-manifest.py、gen-
 ## 签名与密钥
 
 - Android 使用专用发布证书签名（secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、
-  `ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`）。**证书一旦丢失，已安装的用户将无法覆盖升级**，请妥善备份。
+  `ANDROID_KEY_PASSWORD`）。**证书一旦丢失，已安装的用户将无法覆盖升级**，请妥善备份。
 - Windows 版本未做代码签名，首次运行 SmartScreen 会提示「未知发布者」，点「更多信息 → 仍要运行」。
 
 ## 本地构建
