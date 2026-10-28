@@ -3,10 +3,12 @@
   "slug": "zhidian-kitchen",
   "name": "智点出餐",
   "nameEn": "Zhidian Kitchen",
-  "description": "出餐管理中心（Pad 端）：后厨/出餐口看板，新订单语音提醒，拖拽更新制作中、待取餐、已出餐状态。",
+  "description": "出餐管理中心（Pad 端）：后厨/出餐口看板，新订单语音提醒，拖拽更新制作中、待取餐、已出餐；打卡上岗登录，支持记住登录与网络质量检测。",
   "sourceRepo": "open4web/x5",
   "url": "https://pad.huangliji.tech/",
-  "allowedHosts": ["pad.huangliji.tech"],
+  "allowedHosts": [
+    "pad.huangliji.tech"
+  ],
   "androidAppId": "tech.huangliji.pad",
   "windowsAppId": "tech.huangliji.pad",
   "orientation": "sensorLandscape",
